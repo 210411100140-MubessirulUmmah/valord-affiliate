@@ -1,0 +1,57 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: submissions
+    // Document ID: auto-generated
+    // Fields:
+    //   - accountName: string (required)
+    //   - contentLink: string (required, URL)
+    //   - boostCode: string (optional)
+    //   - postDate: string (optional, YYYY-MM-DD)
+    //   - submissionTimestamp: timestamp (required)
+    //   - status: string (required, enum: ['pending', 'approved', 'rejected'])
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "mubarijojo.ummah11@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidSubmission(data) {
+      return data.keys().hasAll(['accountName', 'contentLink', 'status']) &&
+             data.accountName is string && data.accountName.size() > 0 && data.accountName.size() < 100 &&
+             data.contentLink is string && data.contentLink.size() > 0 && data.contentLink.size() < 500 &&
+             data.status in ['pending', 'approved', 'rejected'];
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /submissions/{submissionId} {
+      // Allow anyone to submit (public form)
+      allow create: if isValidSubmission(request.resource.data) && 
+                      request.resource.data.status == 'pending';
+      
+      // Only admins can read, update, or delete
+      allow read, update, delete: if isAdmin();
+    }
+    
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+  }
+}

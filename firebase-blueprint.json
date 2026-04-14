@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "Submission": {
+      "title": "Submission",
+      "description": "A content submission from an affiliate.",
+      "type": "object",
+      "properties": {
+        "accountName": {
+          "type": "string",
+          "description": "The affiliate's account name."
+        },
+        "contentLink": {
+          "type": "string",
+          "format": "uri",
+          "description": "The link to the posted content."
+        },
+        "boostCode": {
+          "type": "string",
+          "description": "The boost code used."
+        },
+        "postDate": {
+          "type": "string",
+          "format": "date",
+          "description": "The date the content was posted."
+        },
+        "submissionTimestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the data was submitted."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected"],
+          "description": "The status of the submission."
+        }
+      },
+      "required": ["accountName", "contentLink", "status"]
+    }
+  },
+  "firestore": {
+    "/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Collection of affiliate submissions."
+    }
+  }
+}
