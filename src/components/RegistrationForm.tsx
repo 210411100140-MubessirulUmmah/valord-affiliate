@@ -40,9 +40,12 @@ export default function RegistrationForm() {
 
       // 2. Auto-sync to Google Sheets
       try {
+        const tiktokUsername = formData.accountTikTok.startsWith('@') ? formData.accountTikTok.substring(1) : formData.accountTikTok;
+        const tiktokLink = `https://www.tiktok.com/@${tiktokUsername}`;
+
         const formattedData = [{
           "Nama Lengkap": formData.fullName,
-          "Akun TikTok": formData.accountTikTok,
+          "Akun TikTok": tiktokLink,
           "Nomor WA": formData.whatsappNumber,
           "Tanggal Daftar": format(new Date(), 'dd/MM/yyyy HH:mm'),
           "Status": "pending",
@@ -89,47 +92,31 @@ export default function RegistrationForm() {
           </CardHeader>
           <CardContent className="space-y-6 pb-8">
             <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
-              <p className="text-sm font-medium text-slate-700">Silakan lanjut ke langkah berikut:</p>
+              <p className="text-sm font-medium text-slate-700 underline underline-offset-4 decoration-orange-200">Langkah Terakhir:</p>
               
               <div className="grid gap-3">
                 <a 
-                  href="https://example.com/affiliate-desc.pdf" 
+                  href={`https://wa.me/62882016368320?text=${encodeURIComponent(`Halo Admin, saya ${formData.fullName}, baru saja mendaftar affiliate. Saya tertarik untuk segera bergabung dan mulai bekerja.`)}`}
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-orange-300 hover:shadow-md transition-all group"
+                  className="flex items-center justify-between p-5 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 hover:shadow-xl shadow-emerald-100 transition-all group scale-100 active:scale-95"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-rose-50 p-2 rounded-lg group-hover:bg-rose-100 transition-colors">
-                      <FileText size={20} className="text-rose-600" />
+                  <div className="flex items-center gap-4">
+                    <div className="bg-white/20 p-2 rounded-xl">
+                      <MessageSquareShare size={24} className="text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-semibold text-slate-900">Download PDF Deskripsi</p>
-                      <p className="text-[10px] text-slate-500">Panduan & Detail Program</p>
+                      <p className="text-base font-bold leading-tight">Hubungi Admin WA</p>
+                      <p className="text-xs text-white/80">Konfirmasi Pendaftaran Anda</p>
                     </div>
                   </div>
-                </a>
-
-                <a 
-                  href="https://chat.whatsapp.com/example" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-emerald-300 hover:shadow-md transition-all group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-emerald-50 p-2 rounded-lg group-hover:bg-emerald-100 transition-colors">
-                      <MessageSquareShare size={20} className="text-emerald-600" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-semibold text-slate-900">Gabung Grup WA</p>
-                      <p className="text-[10px] text-slate-500">Update Informasi Terbaru</p>
-                    </div>
-                  </div>
+                  <Send size={18} className="opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </a>
               </div>
             </div>
 
-            <p className="text-xs text-slate-400">
-              Jika cocok, kami akan mengirimkan sample produk dan form link boost.
+            <p className="text-xs text-slate-400 font-medium italic">
+              Klik tombol di atas untuk mempercepat proses peninjauan akun Anda.
             </p>
           </CardContent>
         </Card>

@@ -100,9 +100,12 @@ export default function AdminDashboard() {
             postDateStr = sub.postDate || '';
           }
 
+          const tiktokUsername = sub.accountName.startsWith('@') ? sub.accountName.substring(1) : sub.accountName;
+          const tiktokLink = `https://www.tiktok.com/@${tiktokUsername}`;
+
           return {
             "TANGGAL_POSTING": postDateStr,
-            "USERNAME_TIKTOK": `${sub.accountName} (${sub.fullName})`,
+            "USERNAME_TIKTOK": `${tiktokLink} (${sub.fullName})`,
             "LINK_VIDEO": sub.contentLink || '',
             "SPARK_ADS_VIDEO": sub.boostCode || '',
             "TANGGAL_INPUT": format(new Date(), 'dd/MM/yyyy'),
@@ -122,9 +125,12 @@ export default function AdminDashboard() {
             regDateStr = '-';
           }
 
+          const tiktokUsername = reg.accountTikTok.startsWith('@') ? reg.accountTikTok.substring(1) : reg.accountTikTok;
+          const tiktokLink = `https://www.tiktok.com/@${tiktokUsername}`;
+
           return {
             "Nama Lengkap": reg.fullName,
-            "Akun TikTok": reg.accountTikTok,
+            "Akun TikTok": tiktokLink,
             "Nomor WA": reg.whatsappNumber,
             "Tanggal Daftar": regDateStr,
             "Status": reg.status,

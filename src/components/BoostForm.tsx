@@ -50,9 +50,12 @@ export default function BoostForm() {
           postDateStr = formData.postDate || '';
         }
 
+        const tiktokUsername = formData.accountName.startsWith('@') ? formData.accountName.substring(1) : formData.accountName;
+        const tiktokLink = `https://www.tiktok.com/@${tiktokUsername}`;
+
         const formattedData = [{
           "TANGGAL_POSTING": postDateStr,
-          "USERNAME_TIKTOK": `${formData.accountName} (${formData.fullName})`,
+          "USERNAME_TIKTOK": `${tiktokLink} (${formData.fullName})`,
           "LINK_VIDEO": formData.contentLink || '',
           "SPARK_ADS_VIDEO": formData.boostCode || '',
           "TANGGAL_INPUT": format(new Date(), 'dd/MM/yyyy'),

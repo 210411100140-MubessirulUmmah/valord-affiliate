@@ -63,12 +63,6 @@ function Navbar({ user }: { user: User | null }) {
                 Form Boost
               </button>
             </Link>
-            <Link to="/admin">
-              <button className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${location.pathname === '/admin' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                <LayoutDashboard size={16} />
-                Dashboard
-              </button>
-            </Link>
           </div>
         )}
         
@@ -79,14 +73,7 @@ function Navbar({ user }: { user: User | null }) {
               <LogOut size={16} />
             </Button>
           </div>
-        ) : (
-          <Link to="/admin">
-            <Button variant="outline" size="sm" className="border-slate-200 text-slate-600">
-              <LogIn size={16} className="mr-2" />
-              Admin
-            </Button>
-          </Link>
-        )}
+        ) : null}
       </div>
     </nav>
   );
