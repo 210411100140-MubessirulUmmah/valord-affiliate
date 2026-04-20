@@ -24,7 +24,7 @@ import {
   Zap,
   Phone
 } from 'lucide-react';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 import { AffiliateSubmission, AffiliateRegistration } from '@/types';
 import { format } from 'date-fns';
@@ -182,7 +182,11 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-slate-900">Admin Dashboard</h2>
-          <p className="text-slate-500 text-sm">Kelola pendaftaran dan submisi konten affiliate.</p>
+          <p className="text-slate-500 text-sm">
+            {auth.currentUser?.email === 'mubarijojo.ummah11@gmail.com' 
+              ? 'Selamat datang kembali, Owner.' 
+              : `Akses Tim Marketing (${auth.currentUser?.email})`}
+          </p>
         </div>
         {!import.meta.env.VITE_SHEETS_WEBHOOK_URL && (
           <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-200 animate-pulse">

@@ -53,13 +53,13 @@ service cloud.firestore {
     match /submissions/{submissionId} {
       allow create: if isValidSubmission(request.resource.data) && 
                       request.resource.data.status == 'pending';
-      allow read, update, delete: if isAdmin();
+      allow read, update, delete: if isAuthenticated();
     }
 
     match /registrations/{registrationId} {
       allow create: if isValidRegistration(request.resource.data) && 
                       request.resource.data.status == 'pending';
-      allow read, update, delete: if isAdmin();
+      allow read, update, delete: if isAuthenticated();
     }
     
     match /users/{userId} {

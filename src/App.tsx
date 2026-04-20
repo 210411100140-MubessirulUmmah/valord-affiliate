@@ -8,6 +8,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react
 import RegistrationForm from '@/components/RegistrationForm';
 import BoostForm from '@/components/BoostForm';
 import AdminDashboard from '@/components/AdminDashboard';
+import AdminLogin from '@/components/AdminLogin';
 import { Toaster } from '@/components/ui/sonner';
 import { LayoutDashboard, UserPlus, Zap, LogIn, LogOut, Rocket } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -127,22 +128,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<RegistrationForm />} />
               <Route path="/boost" element={<BoostForm />} />
-              <Route path="/admin" element={user ? <AdminDashboard /> : (
-                <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
-                  <div className="bg-slate-100 p-6 rounded-full">
-                    <LayoutDashboard size={48} className="text-slate-400" />
-                  </div>
-                  <h2 className="text-2xl font-bold">Akses Terbatas</h2>
-                  <p className="text-slate-500 max-w-xs">Silakan login dengan akun admin untuk mengakses dashboard ini.</p>
-                  <Button onClick={() => {
-                    const provider = new GoogleAuthProvider();
-                    signInWithPopup(auth, provider);
-                  }} className="bg-orange-600 hover:bg-orange-700">
-                    <LogIn size={16} className="mr-2" />
-                    Login Sekarang
-                  </Button>
-                </div>
-              )} />
+              <Route path="/admin" element={user ? <AdminDashboard /> : <AdminLogin />} />
             </Routes>
           </AnimatePresence>
         </main>
