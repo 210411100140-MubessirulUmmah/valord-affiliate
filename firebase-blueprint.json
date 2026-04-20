@@ -36,6 +36,10 @@
           "type": "string",
           "enum": ["pending", "approved", "rejected"],
           "description": "The status of the submission."
+        },
+        "isSynced": {
+          "type": "boolean",
+          "description": "Whether the record has been synced to Google Sheets."
         }
       },
       "required": ["fullName", "accountName", "contentLink", "status"]
@@ -66,6 +70,10 @@
           "type": "string",
           "enum": ["pending", "reviewed", "qualified", "rejected"],
           "description": "The status of the registration."
+        },
+        "isSynced": {
+          "type": "boolean",
+          "description": "Whether the record has been synced to Google Sheets."
         }
       },
       "required": ["fullName", "accountTikTok", "whatsappNumber", "status"]

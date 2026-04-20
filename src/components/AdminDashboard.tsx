@@ -76,8 +76,11 @@ export default function AdminDashboard() {
   };
 
   const handleSyncToSheets = async (data: any[], type: string) => {
-    if (data.length === 0) {
-      toast.error('Tidak ada data untuk disinkronkan');
+    // Only sync items that haven't been synced yet
+    const unsyncedData = data.filter(item => !item.isSynced);
+
+    if (unsyncedData.length === 0) {
+      toast.info('Semua data terpilih sudah disinkronkan sebelumnya.');
       return;
     }
 
@@ -87,39 +90,69 @@ export default function AdminDashboard() {
 
       if (type === 'Submissions') {
         // Mapping specifically for "Recap SPARK ADS AFF"
-        formattedData = data.map((sub) => ({
-          "TANGGAL_POSTING": sub.postDate || '',
-          "USERNAME_TIKTOK": `${sub.accountName} (${sub.fullName})`,
-          "LINK_VIDEO": sub.contentLink || '',
-          "SPARK_ADS_VIDEO": sub.boostCode || '',
-          "TANGGAL_INPUT": format(new Date(), 'dd/MM/yyyy'),
-          "Keterangan": sub.status,
-          "SHEET_NAME": "Recap SPARK ADS AFF" // Specific target sheet
-        }));
+        formattedData = unsyncedData.map((sub) => {
+          let postDateStr = '';
+          try {
+            if (sub.postDate) {
+              postDateStr = format(new Date(sub.postDate), 'dd/MM/yyyy');
+            }
+          } catch (e) {
+            postDateStr = sub.postDate || '';
+          }
+
+          return {
+            "TANGGAL_POSTING": postDateStr,
+            "USERNAME_TIKTOK": `${sub.accountName} (${sub.fullName})`,
+            "LINK_VIDEO": sub.contentLink || '',
+            "SPARK_ADS_VIDEO": sub.boostCode || '',
+            "TANGGAL_INPUT": format(new Date(), 'dd/MM/yyyy'),
+            "Keterangan": sub.status,
+            "SHEET_NAME": "Recap SPARK ADS AFF"
+          };
+        });
       } else {
         // Mapping for registrations
-        formattedData = data.map(reg => ({
-          "Nama Lengkap": reg.fullName,
-          "Akun TikTok": reg.accountTikTok,
-          "Nomor WA": reg.whatsappNumber,
-          "Tanggal Daftar": reg.registrationTimestamp ? format(reg.registrationTimestamp.toDate(), 'dd/MM/yyyy HH:mm') : '',
-          "Status": reg.status,
-          "SHEET_NAME": "Data Pendaftaran" 
-        }));
+        formattedData = unsyncedData.map(reg => {
+          let regDateStr = '';
+          try {
+            if (reg.registrationTimestamp && typeof reg.registrationTimestamp.toDate === 'function') {
+              regDateStr = format(reg.registrationTimestamp.toDate(), 'dd/MM/yyyy HH:mm');
+            }
+          } catch (e) {
+            regDateStr = '-';
+          }
+
+          return {
+            "Nama Lengkap": reg.fullName,
+            "Akun TikTok": reg.accountTikTok,
+            "Nomor WA": reg.whatsappNumber,
+            "Tanggal Daftar": regDateStr,
+            "Status": reg.status,
+            "SHEET_NAME": "Data Pendaftaran" 
+          };
+        });
       }
 
       const result = await syncToGoogleSheets(formattedData);
       if (result.success) {
-        toast.success(`Berhasil sinkronisasi ${type} ke Google Sheets!`);
+        // Mark items as synced in Firestore
+        const collectionName = type === 'Submissions' ? 'submissions' : 'registrations';
+        await Promise.all(unsyncedData.map(item => 
+          updateDoc(doc(db, collectionName, item.id!), { isSynced: true })
+        ));
+        
+        toast.success(`Berhasil sinkronisasi ${formattedData.length} data baru ke Google Sheets!`);
       }
     } catch (error) {
       console.error('Sync error:', error);
       if (error instanceof Error && error.message === 'CONFIG_MISSING') {
         toast.error('URL Webhook belum diatur', {
-          description: 'Tim kami memerlukan URL Webhook dari Google Apps Script. Silakan atur di menu Settings.'
+          description: 'Tim kami memerlukan URL Webhook (yang berakhiran /exec) dari Google Apps Script.'
         });
       } else {
-        toast.error('Gagal sinkronisasi. Periksa koneksi atau konfigurasi Webhook.');
+        toast.error('Gagal sinkronisasi', {
+          description: 'Pastikan URL Webhook di Settings sudah benar dan berakhiran /exec (bukan URL Google Sheets).'
+        });
       }
     } finally {
       setSyncing(false);
@@ -197,15 +230,16 @@ export default function AdminDashboard() {
                       <TableHead>Akun TikTok</TableHead>
                       <TableHead>Nomor WA</TableHead>
                       <TableHead>Tgl Daftar</TableHead>
+                      <TableHead>Sync</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {loading ? (
-                      <TableRow><TableCell colSpan={6} className="h-32 text-center">Memuat...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={7} className="h-32 text-center">Memuat...</TableCell></TableRow>
                     ) : registrations.length === 0 ? (
-                      <TableRow><TableCell colSpan={6} className="h-32 text-center text-slate-400">Belum ada pendaftar.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={7} className="h-32 text-center text-slate-400">Belum ada pendaftar.</TableCell></TableRow>
                     ) : (
                       registrations.map((reg) => (
                         <TableRow key={reg.id} className="hover:bg-slate-50/50 border-slate-100">
@@ -219,6 +253,13 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell className="text-slate-500 text-xs text-nowrap">
                             {reg.registrationTimestamp ? format(reg.registrationTimestamp.toDate(), 'dd MMM yyyy, HH:mm') : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {reg.isSynced ? (
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 ring-0">Synced</Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 ring-0">New</Badge>
+                            )}
                           </TableCell>
                           <TableCell>{getStatusBadge(reg.status)}</TableCell>
                           <TableCell className="text-right">
@@ -265,13 +306,14 @@ export default function AdminDashboard() {
                       <TableHead>Link Konten</TableHead>
                       <TableHead>Kode</TableHead>
                       <TableHead>Tgl Post</TableHead>
+                      <TableHead>Sync</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {submissions.length === 0 ? (
-                      <TableRow><TableCell colSpan={7} className="h-32 text-center text-slate-400">Belum ada link boost.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="h-32 text-center text-slate-400">Belum ada link boost.</TableCell></TableRow>
                     ) : (
                       submissions.map((sub) => (
                         <TableRow key={sub.id} className="hover:bg-slate-50/50 border-slate-100">
@@ -282,6 +324,13 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell><code className="bg-slate-100 px-1 rounded text-xs">{sub.boostCode || '-'}</code></TableCell>
                           <TableCell className="text-slate-500 text-xs">{sub.postDate || '-'}</TableCell>
+                          <TableCell>
+                            {sub.isSynced ? (
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 ring-0">Synced</Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-100 ring-0">New</Badge>
+                            )}
+                          </TableCell>
                           <TableCell>{getStatusBadge(sub.status)}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">

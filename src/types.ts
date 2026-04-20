@@ -7,6 +7,7 @@ export interface AffiliateSubmission {
   submissionTimestamp: any; // Firestore Timestamp
   postDate: string; // Extracted or manually entered
   status: 'pending' | 'approved' | 'rejected';
+  isSynced?: boolean;
 }
 
 export interface AffiliateRegistration {
@@ -16,4 +17,5 @@ export interface AffiliateRegistration {
   whatsappNumber: string;
   registrationTimestamp: any; // Firestore Timestamp
   status: 'pending' | 'reviewed' | 'qualified' | 'rejected';
+  isSynced?: boolean;
 }

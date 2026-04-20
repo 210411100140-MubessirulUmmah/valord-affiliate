@@ -10,15 +10,11 @@ export const syncToGoogleSheets = async (data: any[]) => {
   }
 
   try {
-    // We use a proxy-like fetch or standard fetch
-    // Note: mode 'no-cors' will always return an opaque response (status 0)
-    // but the request usually reaches the server.
+    // Note: mode 'no-cors' does not allow 'Content-Type: application/json'.
+    // The request will be sent as 'text/plain' but contain our JSON string.
     await fetch(WEBHOOK_URL, {
       method: 'POST',
       mode: 'no-cors',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(data),
     });
     
