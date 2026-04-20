@@ -31,10 +31,19 @@ service cloud.firestore {
     }
 
     function isValidSubmission(data) {
-      return data.keys().hasAll(['accountName', 'contentLink', 'status']) &&
+      return data.keys().hasAll(['fullName', 'accountName', 'contentLink', 'status']) &&
+             data.fullName is string && data.fullName.size() > 0 && data.fullName.size() < 100 &&
              data.accountName is string && data.accountName.size() > 0 && data.accountName.size() < 100 &&
              data.contentLink is string && data.contentLink.size() > 0 && data.contentLink.size() < 500 &&
              data.status in ['pending', 'approved', 'rejected'];
+    }
+
+    function isValidRegistration(data) {
+      return data.keys().hasAll(['fullName', 'accountTikTok', 'whatsappNumber', 'status']) &&
+             data.fullName is string && data.fullName.size() > 0 && data.fullName.size() < 100 &&
+             data.accountTikTok is string && data.accountTikTok.size() > 0 && data.accountTikTok.size() < 100 &&
+             data.whatsappNumber is string && data.whatsappNumber.size() > 0 && data.whatsappNumber.size() < 50 &&
+             data.status in ['pending', 'reviewed', 'qualified', 'rejected'];
     }
 
     // ===============================================================
@@ -42,11 +51,14 @@ service cloud.firestore {
     // ===============================================================
 
     match /submissions/{submissionId} {
-      // Allow anyone to submit (public form)
       allow create: if isValidSubmission(request.resource.data) && 
                       request.resource.data.status == 'pending';
-      
-      // Only admins can read, update, or delete
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /registrations/{registrationId} {
+      allow create: if isValidRegistration(request.resource.data) && 
+                      request.resource.data.status == 'pending';
       allow read, update, delete: if isAdmin();
     }
     

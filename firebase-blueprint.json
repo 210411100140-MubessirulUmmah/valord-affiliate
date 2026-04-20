@@ -5,6 +5,10 @@
       "description": "A content submission from an affiliate.",
       "type": "object",
       "properties": {
+        "fullName": {
+          "type": "string",
+          "description": "The affiliate's full name."
+        },
         "accountName": {
           "type": "string",
           "description": "The affiliate's account name."
@@ -34,13 +38,47 @@
           "description": "The status of the submission."
         }
       },
-      "required": ["accountName", "contentLink", "status"]
+      "required": ["fullName", "accountName", "contentLink", "status"]
+    },
+    "Registration": {
+      "title": "Registration",
+      "description": "An affiliate registration application.",
+      "type": "object",
+      "properties": {
+        "fullName": {
+          "type": "string",
+          "description": "The applicant's full name."
+        },
+        "accountTikTok": {
+          "type": "string",
+          "description": "TikTok account name."
+        },
+        "whatsappNumber": {
+          "type": "string",
+          "description": "Active WA number."
+        },
+        "registrationTimestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When they registered."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "reviewed", "qualified", "rejected"],
+          "description": "The status of the registration."
+        }
+      },
+      "required": ["fullName", "accountTikTok", "whatsappNumber", "status"]
     }
   },
   "firestore": {
     "/submissions/{submissionId}": {
       "schema": "Submission",
       "description": "Collection of affiliate submissions."
+    },
+    "/registrations/{registrationId}": {
+      "schema": "Registration",
+      "description": "Collection of affiliate registrations."
     }
   }
 }

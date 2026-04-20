@@ -5,10 +5,11 @@
 
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
-import AffiliateForm from '@/components/AffiliateForm';
+import RegistrationForm from '@/components/RegistrationForm';
+import BoostForm from '@/components/BoostForm';
 import AdminDashboard from '@/components/AdminDashboard';
 import { Toaster } from '@/components/ui/sonner';
-import { LayoutDashboard, UserPlus, Zap, LogIn, LogOut } from 'lucide-react';
+import { LayoutDashboard, UserPlus, Zap, LogIn, LogOut, Rocket } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth } from '@/lib/firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut, User } from 'firebase/auth';
@@ -51,7 +52,13 @@ function Navbar({ user }: { user: User | null }) {
           <Link to="/">
             <button className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${location.pathname === '/' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
               <UserPlus size={16} />
-              Submit
+              Daftar
+            </button>
+          </Link>
+          <Link to="/boost">
+            <button className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${location.pathname === '/boost' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              <Rocket size={16} />
+              Boost
             </button>
           </Link>
           <Link to="/admin">
@@ -114,7 +121,8 @@ export default function App() {
         <main className="container mx-auto px-4 py-8 relative z-10">
           <AnimatePresence mode="wait">
             <Routes>
-              <Route path="/" element={<AffiliateForm />} />
+              <Route path="/" element={<RegistrationForm />} />
+              <Route path="/boost" element={<BoostForm />} />
               <Route path="/admin" element={user ? <AdminDashboard /> : (
                 <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
                   <div className="bg-slate-100 p-6 rounded-full">

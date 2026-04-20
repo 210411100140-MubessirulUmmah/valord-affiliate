@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Download, 
   RefreshCw, 
@@ -18,11 +19,14 @@ import {
   CheckCircle2, 
   XCircle, 
   Clock,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Users,
+  Zap,
+  Phone
 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
-import { AffiliateSubmission } from '@/types';
+import { AffiliateSubmission, AffiliateRegistration } from '@/types';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -30,56 +34,93 @@ import { syncToGoogleSheets } from '@/services/sheetsService';
 
 export default function AdminDashboard() {
   const [submissions, setSubmissions] = useState<AffiliateSubmission[]>([]);
+  const [registrations, setRegistrations] = useState<AffiliateRegistration[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'submissions'), orderBy('submissionTimestamp', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    // Listen to Submissions
+    const qSub = query(collection(db, 'submissions'), orderBy('submissionTimestamp', 'desc'));
+    const unsubSub = onSnapshot(qSub, (snapshot) => {
       const data = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as AffiliateSubmission[];
       setSubmissions(data);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching submissions:", error);
+    });
+
+    // Listen to Registrations
+    const qReg = query(collection(db, 'registrations'), orderBy('registrationTimestamp', 'desc'));
+    const unsubReg = onSnapshot(qReg, (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as AffiliateRegistration[];
+      setRegistrations(data);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubSub();
+      unsubReg();
+    };
   }, []);
 
-  const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected') => {
+  const handleStatusUpdate = async (collectionName: string, id: string, status: string) => {
     try {
-      await updateDoc(doc(db, 'submissions', id), { status });
-      toast.success(`Status diperbarui menjadi ${status}`);
+      await updateDoc(doc(db, collectionName, id), { status });
+      toast.success(`Status diperbarui`);
     } catch (error) {
       toast.error('Gagal memperbarui status');
     }
   };
 
-  const handleSyncToSheets = async () => {
-    if (submissions.length === 0) {
+  const handleSyncToSheets = async (data: any[], type: string) => {
+    if (data.length === 0) {
       toast.error('Tidak ada data untuk disinkronkan');
       return;
     }
 
     setSyncing(true);
     try {
-      // Format data for sheets (convert timestamps to strings)
-      const formattedData = submissions.map(sub => ({
-        ...sub,
-        submissionTimestamp: sub.submissionTimestamp ? format(sub.submissionTimestamp.toDate(), 'yyyy-MM-dd HH:mm:ss') : ''
-      }));
+      let formattedData = [];
+
+      if (type === 'Submissions') {
+        // Mapping specifically for "Recap SPARK ADS AFF"
+        formattedData = data.map((sub) => ({
+          "TANGGAL_POSTING": sub.postDate || '',
+          "USERNAME_TIKTOK": `${sub.accountName} (${sub.fullName})`,
+          "LINK_VIDEO": sub.contentLink || '',
+          "SPARK_ADS_VIDEO": sub.boostCode || '',
+          "TANGGAL_INPUT": format(new Date(), 'dd/MM/yyyy'),
+          "Keterangan": sub.status,
+          "SHEET_NAME": "Recap SPARK ADS AFF" // Specific target sheet
+        }));
+      } else {
+        // Mapping for registrations
+        formattedData = data.map(reg => ({
+          "Nama Lengkap": reg.fullName,
+          "Akun TikTok": reg.accountTikTok,
+          "Nomor WA": reg.whatsappNumber,
+          "Tanggal Daftar": reg.registrationTimestamp ? format(reg.registrationTimestamp.toDate(), 'dd/MM/yyyy HH:mm') : '',
+          "Status": reg.status,
+          "SHEET_NAME": "Data Pendaftaran" 
+        }));
+      }
 
       const result = await syncToGoogleSheets(formattedData);
       if (result.success) {
-        toast.success('Berhasil sinkronisasi ke Google Sheets!');
+        toast.success(`Berhasil sinkronisasi ${type} ke Google Sheets!`);
       }
     } catch (error) {
       console.error('Sync error:', error);
-      toast.error('Gagal sinkronisasi. Periksa konfigurasi Webhook URL.');
+      if (error instanceof Error && error.message === 'CONFIG_MISSING') {
+        toast.error('URL Webhook belum diatur', {
+          description: 'Tim kami memerlukan URL Webhook dari Google Apps Script. Silakan atur di menu Settings.'
+        });
+      } else {
+        toast.error('Gagal sinkronisasi. Periksa koneksi atau konfigurasi Webhook.');
+      }
     } finally {
       setSyncing(false);
     }
@@ -88,9 +129,12 @@ export default function AdminDashboard() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
-        return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200"><CheckCircle2 size={12} className="mr-1" /> Approved</Badge>;
+      case 'qualified':
+        return <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-emerald-200"><CheckCircle2 size={12} className="mr-1" /> Qualified/Approved</Badge>;
       case 'rejected':
         return <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 border-rose-200"><XCircle size={12} className="mr-1" /> Rejected</Badge>;
+      case 'reviewed':
+        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-blue-200"><RefreshCw size={12} className="mr-1" /> Reviewed</Badge>;
       default:
         return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200"><Clock size={12} className="mr-1" /> Pending</Badge>;
     }
@@ -105,117 +149,157 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-slate-900">Admin Dashboard</h2>
-          <p className="text-slate-500 text-sm">Kelola data konten dari para affiliator.</p>
+          <p className="text-slate-500 text-sm">Kelola pendaftaran dan submisi konten affiliate.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={handleSyncToSheets} 
-            disabled={syncing}
-            className="border-slate-200 text-slate-600 hover:bg-slate-50"
-          >
-            {syncing ? <RefreshCw size={16} className="mr-2 animate-spin" /> : <FileSpreadsheet size={16} className="mr-2 text-emerald-600" />}
-            Sync to Sheets
-          </Button>
-          <Button className="bg-slate-900 text-white hover:bg-slate-800">
-            <Download size={16} className="mr-2" />
-            Export CSV
-          </Button>
-        </div>
+        {!import.meta.env.VITE_SHEETS_WEBHOOK_URL && (
+          <Badge variant="outline" className="bg-rose-50 text-rose-600 border-rose-200 animate-pulse">
+            Sync Belum Dikonfigurasi
+          </Badge>
+        )}
       </div>
 
-      <Card className="border-none shadow-xl bg-white/50 backdrop-blur-sm overflow-hidden">
-        <CardHeader className="bg-slate-50/50 border-b border-slate-100">
-          <CardTitle>Daftar Submisi</CardTitle>
-          <CardDescription>Total {submissions.length} data masuk terdeteksi.</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent border-slate-100">
-                  <TableHead className="w-[150px]">Akun</TableHead>
-                  <TableHead>Link Konten</TableHead>
-                  <TableHead>Kode Boost</TableHead>
-                  <TableHead>Tgl Post</TableHead>
-                  <TableHead>Timestamp</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-slate-400">
-                      <div className="flex flex-col items-center gap-2">
-                        <RefreshCw className="animate-spin" size={24} />
-                        Memuat data...
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : submissions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center text-slate-400">
-                      Belum ada data yang masuk.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  submissions.map((sub) => (
-                    <TableRow key={sub.id} className="hover:bg-slate-50/50 border-slate-100 transition-colors">
-                      <TableCell className="font-medium text-slate-900">{sub.accountName}</TableCell>
-                      <TableCell>
-                        <a 
-                          href={sub.contentLink} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="flex items-center text-blue-600 hover:underline gap-1 text-xs truncate max-w-[200px]"
-                        >
-                          {sub.contentLink}
-                          <ExternalLink size={12} />
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        <code className="bg-slate-100 px-1.5 py-0.5 rounded text-xs font-mono text-slate-700">
-                          {sub.boostCode || '-'}
-                        </code>
-                      </TableCell>
-                      <TableCell className="text-slate-600 text-xs">
-                        {sub.postDate || '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-400 text-[10px]">
-                        {sub.submissionTimestamp ? format(sub.submissionTimestamp.toDate(), 'dd MMM yyyy, HH:mm') : '-'}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(sub.status)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                            onClick={() => handleStatusUpdate(sub.id!, 'approved')}
-                          >
-                            <CheckCircle2 size={16} />
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                            onClick={() => handleStatusUpdate(sub.id!, 'rejected')}
-                          >
-                            <XCircle size={16} />
-                          </Button>
-                        </div>
-                      </TableCell>
+      <Tabs defaultValue="registrations" className="w-full">
+        <TabsList className="bg-slate-100 p-1 rounded-xl mb-4">
+          <TabsTrigger value="registrations" className="rounded-lg px-6 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-2">
+            <Users size={16} />
+            Pendaftar
+          </TabsTrigger>
+          <TabsTrigger value="submissions" className="rounded-lg px-6 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-2">
+            <Zap size={16} />
+            Submisi Konten
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="registrations">
+          <Card className="border-none shadow-xl bg-white/50 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Daftar Pendaftar Baru</CardTitle>
+                <CardDescription>Total {registrations.length} pendaftar perlu diseleksi.</CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleSyncToSheets(registrations, 'Registrations')} 
+                disabled={syncing}
+                className="border-slate-200 text-slate-600 h-9"
+              >
+                <FileSpreadsheet size={16} className="mr-2 text-emerald-600" />
+                Sync Sheets
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-slate-100">
+                      <TableHead>Nama Lengkap</TableHead>
+                      <TableHead>Akun TikTok</TableHead>
+                      <TableHead>Nomor WA</TableHead>
+                      <TableHead>Tgl Daftar</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow><TableCell colSpan={6} className="h-32 text-center">Memuat...</TableCell></TableRow>
+                    ) : registrations.length === 0 ? (
+                      <TableRow><TableCell colSpan={6} className="h-32 text-center text-slate-400">Belum ada pendaftar.</TableCell></TableRow>
+                    ) : (
+                      registrations.map((reg) => (
+                        <TableRow key={reg.id} className="hover:bg-slate-50/50 border-slate-100">
+                          <TableCell className="font-semibold text-slate-900">{reg.fullName}</TableCell>
+                          <TableCell className="text-slate-600">{reg.accountTikTok}</TableCell>
+                          <TableCell>
+                            <a href={`https://wa.me/${reg.whatsappNumber.replace(/\D/g,'')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-emerald-600 hover:underline">
+                              <Phone size={14} />
+                              {reg.whatsappNumber}
+                            </a>
+                          </TableCell>
+                          <TableCell className="text-slate-500 text-xs text-nowrap">
+                            {reg.registrationTimestamp ? format(reg.registrationTimestamp.toDate(), 'dd MMM yyyy, HH:mm') : '-'}
+                          </TableCell>
+                          <TableCell>{getStatusBadge(reg.status)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-emerald-600" onClick={() => handleStatusUpdate('registrations', reg.id!, 'qualified')}><CheckCircle2 size={16} /></Button>
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => handleStatusUpdate('registrations', reg.id!, 'rejected')}><XCircle size={16} /></Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="submissions">
+          <Card className="border-none shadow-xl bg-white/50 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="bg-slate-50/50 border-b border-slate-100 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Daftar Submisi Link Boost</CardTitle>
+                <CardDescription>Total {submissions.length} link boost terdeteksi.</CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleSyncToSheets(submissions, 'Submissions')} 
+                disabled={syncing}
+                className="border-slate-200 text-slate-600 h-9"
+              >
+                <FileSpreadsheet size={16} className="mr-2 text-emerald-600" />
+                Sync Sheets
+              </Button>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-slate-100">
+                      <TableHead>Nama Lengkap</TableHead>
+                      <TableHead>Akun</TableHead>
+                      <TableHead>Link Konten</TableHead>
+                      <TableHead>Kode</TableHead>
+                      <TableHead>Tgl Post</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {submissions.length === 0 ? (
+                      <TableRow><TableCell colSpan={7} className="h-32 text-center text-slate-400">Belum ada link boost.</TableCell></TableRow>
+                    ) : (
+                      submissions.map((sub) => (
+                        <TableRow key={sub.id} className="hover:bg-slate-50/50 border-slate-100">
+                          <TableCell className="font-semibold text-slate-900">{sub.fullName}</TableCell>
+                          <TableCell className="text-slate-600">{sub.accountName}</TableCell>
+                          <TableCell>
+                            <a href={sub.contentLink} target="_blank" rel="noreferrer" className="flex items-center text-blue-600 gap-1 text-xs">{sub.contentLink.substring(0, 30)}...<ExternalLink size={12} /></a>
+                          </TableCell>
+                          <TableCell><code className="bg-slate-100 px-1 rounded text-xs">{sub.boostCode || '-'}</code></TableCell>
+                          <TableCell className="text-slate-500 text-xs">{sub.postDate || '-'}</TableCell>
+                          <TableCell>{getStatusBadge(sub.status)}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-emerald-600" onClick={() => handleStatusUpdate('submissions', sub.id!, 'approved')}><CheckCircle2 size={16} /></Button>
+                              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => handleStatusUpdate('submissions', sub.id!, 'rejected')}><XCircle size={16} /></Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </motion.div>
   );
 }
+
