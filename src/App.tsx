@@ -48,26 +48,28 @@ function Navbar({ user }: { user: User | null }) {
         <span className="font-bold text-xl tracking-tight text-slate-900">Affiliate<span className="text-orange-600">Boost</span></span>
       </div>
       <div className="flex items-center gap-4">
-        <div className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-          <Link to="/">
-            <button className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${location.pathname === '/' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-              <UserPlus size={16} />
-              Daftar
-            </button>
-          </Link>
-          <Link to="/boost">
-            <button className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${location.pathname === '/boost' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-              <Rocket size={16} />
-              Boost
-            </button>
-          </Link>
-          <Link to="/admin">
-            <button className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${location.pathname === '/admin' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-              <LayoutDashboard size={16} />
-              Admin
-            </button>
-          </Link>
-        </div>
+        {user && (
+          <div className="hidden md:flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            <Link to="/">
+              <button className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${location.pathname === '/' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                <UserPlus size={16} />
+                Form Daftar
+              </button>
+            </Link>
+            <Link to="/boost">
+              <button className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${location.pathname === '/boost' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                <Rocket size={16} />
+                Form Boost
+              </button>
+            </Link>
+            <Link to="/admin">
+              <button className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${location.pathname === '/admin' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                <LayoutDashboard size={16} />
+                Dashboard
+              </button>
+            </Link>
+          </div>
+        )}
         
         {user ? (
           <div className="flex items-center gap-3">
@@ -77,10 +79,12 @@ function Navbar({ user }: { user: User | null }) {
             </Button>
           </div>
         ) : (
-          <Button variant="outline" size="sm" onClick={handleLogin} className="border-slate-200 text-slate-600">
-            <LogIn size={16} className="mr-2" />
-            Login Admin
-          </Button>
+          <Link to="/admin">
+            <Button variant="outline" size="sm" className="border-slate-200 text-slate-600">
+              <LogIn size={16} className="mr-2" />
+              Admin
+            </Button>
+          </Link>
         )}
       </div>
     </nav>
@@ -130,6 +134,13 @@ export default function App() {
                   </div>
                   <h2 className="text-2xl font-bold">Akses Terbatas</h2>
                   <p className="text-slate-500 max-w-xs">Silakan login dengan akun admin untuk mengakses dashboard ini.</p>
+                  <Button onClick={() => {
+                    const provider = new GoogleAuthProvider();
+                    signInWithPopup(auth, provider);
+                  }} className="bg-orange-600 hover:bg-orange-700">
+                    <LogIn size={16} className="mr-2" />
+                    Login Sekarang
+                  </Button>
                 </div>
               )} />
             </Routes>
