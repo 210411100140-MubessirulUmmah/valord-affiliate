@@ -43,26 +43,10 @@ function Navbar({ user }: { user: User | null }) {
   return (
     <nav className="flex items-center justify-between px-6 py-4 bg-white/50 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-50">
       <div className="flex items-center gap-2">
-        <Link to="/" className="flex items-center">
-          <img 
-            src="https://valord.id/wp-content/uploads/2023/09/Logo-Valord.png" 
-            alt="Valord Logo" 
-            className="h-10 w-auto object-contain"
-            referrerPolicy="no-referrer"
-            onError={(e) => {
-              // Fallback to text if image fails
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              const parent = target.parentElement;
-              if (parent) {
-                const text = document.createElement('span');
-                text.className = 'font-bold text-xl tracking-tight text-slate-900 italic';
-                text.innerText = 'VALORD';
-                parent.appendChild(text);
-              }
-            }}
-          />
-        </Link>
+        <div className="bg-orange-600 p-2 rounded-lg shadow-lg shadow-orange-200">
+          <Zap size={20} className="text-white" />
+        </div>
+        <img src="../public/Valord Logo.png" alt="" />
       </div>
       <div className="flex items-center gap-4">
         {user && (
