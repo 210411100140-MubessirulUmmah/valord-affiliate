@@ -48,7 +48,7 @@ export default function RegistrationForm() {
           "Akun TikTok": tiktokLink,
           "Nomor WA": formData.whatsappNumber,
           "Tanggal Daftar": format(new Date(), 'dd/MM/yyyy HH:mm'),
-          "Status": "pending",
+          "Status": false, // This will be used as a checkbox
           "SHEET_NAME": "Data Pendaftaran" 
         }];
 
