@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Send, User, Phone, CheckCircle2, FileText, MessageSquareShare } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { syncToGoogleSheets } from '@/services/sheetsService';
 
 export default function RegistrationForm() {
   const [loading, setLoading] = useState(false);
@@ -28,11 +30,35 @@ export default function RegistrationForm() {
 
     setLoading(true);
     try {
-      await addDoc(collection(db, 'registrations'), {
+      // 1. Save to Firestore
+      const docRef = await addDoc(collection(db, 'registrations'), {
         ...formData,
         registrationTimestamp: serverTimestamp(),
         status: 'pending',
+        isSynced: false
       });
+
+      // 2. Auto-sync to Google Sheets
+      try {
+        const formattedData = [{
+          "Nama Lengkap": formData.fullName,
+          "Akun TikTok": formData.accountTikTok,
+          "Nomor WA": formData.whatsappNumber,
+          "Tanggal Daftar": format(new Date(), 'dd/MM/yyyy HH:mm'),
+          "Status": "pending",
+          "SHEET_NAME": "Data Pendaftaran" 
+        }];
+
+        const result = await syncToGoogleSheets(formattedData);
+        if (result.success) {
+          await updateDoc(doc(db, 'registrations', docRef.id), { isSynced: true });
+        }
+      } catch (syncError) {
+        console.error('Auto-sync failed:', syncError);
+        // We don't block the user experience if sync fails, 
+        // admin can still manual sync later.
+      }
+
       toast.success('Pendaftaran berhasil dikirim!');
       setSubmitted(true);
     } catch (error) {

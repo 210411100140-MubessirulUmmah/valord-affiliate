@@ -7,8 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Send, Link as LinkIcon, User, Zap, Calendar, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { syncToGoogleSheets } from '@/services/sheetsService';
 
 export default function BoostForm() {
   const [loading, setLoading] = useState(false);
@@ -29,13 +31,46 @@ export default function BoostForm() {
 
     setLoading(true);
     try {
-      await addDoc(collection(db, 'submissions'), {
+      // 1. Save to Firestore
+      const docRef = await addDoc(collection(db, 'submissions'), {
         ...formData,
         submissionTimestamp: serverTimestamp(),
         status: 'pending',
+        isSynced: false
       });
+
+      // 2. Auto-sync to Google Sheets
+      try {
+        let postDateStr = '';
+        try {
+          if (formData.postDate) {
+            postDateStr = format(new Date(formData.postDate), 'dd/MM/yyyy');
+          }
+        } catch (e) {
+          postDateStr = formData.postDate || '';
+        }
+
+        const formattedData = [{
+          "TANGGAL_POSTING": postDateStr,
+          "USERNAME_TIKTOK": `${formData.accountName} (${formData.fullName})`,
+          "LINK_VIDEO": formData.contentLink || '',
+          "SPARK_ADS_VIDEO": formData.boostCode || '',
+          "TANGGAL_INPUT": format(new Date(), 'dd/MM/yyyy'),
+          "Keterangan": "pending",
+          "SHEET_NAME": "Recap SPARK ADS AFF"
+        }];
+
+        const result = await syncToGoogleSheets(formattedData);
+        if (result.success) {
+          await updateDoc(doc(db, 'submissions', docRef.id), { isSynced: true });
+        }
+      } catch (syncError) {
+        console.error('Auto-sync failed:', syncError);
+      }
+
       toast.success('Data konten berhasil dikirim!');
       setFormData({
+        fullName: formData.fullName, // Keep name for convenience
         accountName: '',
         contentLink: '',
         boostCode: '',
