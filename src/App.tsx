@@ -46,7 +46,7 @@ function Navbar({ user }: { user: User | null }) {
         <div className="bg-orange-600 p-2 rounded-lg shadow-lg shadow-orange-200">
           <Zap size={20} className="text-white" />
         </div>
-        <img src="../public/Valord Logo.png" alt="" />
+        <img src="/Valord Logo.png" alt="" />
       </div>
       <div className="flex items-center gap-4">
         {user && (
