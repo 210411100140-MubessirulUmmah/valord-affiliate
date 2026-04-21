@@ -128,12 +128,18 @@ export default function AdminDashboard() {
           const tiktokUsername = reg.accountTikTok.startsWith('@') ? reg.accountTikTok.substring(1) : reg.accountTikTok;
           const tiktokLink = `https://www.tiktok.com/@${tiktokUsername}`;
 
+          let waNumber = reg.whatsappNumber.replace(/[^0-9]/g, '');
+          if (waNumber.startsWith('0')) {
+            waNumber = '62' + waNumber.substring(1);
+          }
+          const whatsappLink = `https://wa.me/${waNumber}`;
+
           return {
             "Nama Lengkap": reg.fullName,
             "Akun TikTok": tiktokLink,
-            "Nomor WA": reg.whatsappNumber,
+            "Nomor WA": whatsappLink,
             "Tanggal Daftar": regDateStr,
-            "Status": reg.status,
+            "Status": false, // Force false for manual sync to support checkboxes
             "SHEET_NAME": "Data Pendaftaran" 
           };
         });

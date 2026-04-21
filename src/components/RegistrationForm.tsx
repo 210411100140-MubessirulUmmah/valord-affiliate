@@ -43,10 +43,16 @@ export default function RegistrationForm() {
         const tiktokUsername = formData.accountTikTok.startsWith('@') ? formData.accountTikTok.substring(1) : formData.accountTikTok;
         const tiktokLink = `https://www.tiktok.com/@${tiktokUsername}`;
 
+        let waNumber = formData.whatsappNumber.replace(/[^0-9]/g, '');
+        if (waNumber.startsWith('0')) {
+          waNumber = '62' + waNumber.substring(1);
+        }
+        const whatsappLink = `https://wa.me/${waNumber}`;
+
         const formattedData = [{
           "Nama Lengkap": formData.fullName,
           "Akun TikTok": tiktokLink,
-          "Nomor WA": formData.whatsappNumber,
+          "Nomor WA": whatsappLink,
           "Tanggal Daftar": format(new Date(), 'dd/MM/yyyy HH:mm'),
           "Status": false, // This will be used as a checkbox
           "SHEET_NAME": "Data Pendaftaran" 
